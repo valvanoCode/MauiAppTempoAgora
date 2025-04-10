@@ -1,5 +1,6 @@
 ﻿using MauiAppTempoAgora.Models;
 using Newtonsoft.Json.Linq;
+using Microsoft.Maui.Networking;
 
 namespace MauiAppTempoAgora.Services
 {
@@ -7,19 +8,41 @@ namespace MauiAppTempoAgora.Services
     {
         public static async Task<Tempo?> GetPrevisao(string cidade)
         {
+            // Verificação de conexão com a internet
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            {
+                await Shell.Current.DisplayAlert("Sem conexão",
+                    "Verifique sua conexão com a internet e tente novamente.", "OK");
+                return null;
+            }
+
             Tempo? t = null;
-
             string chave = "6135072afe7f6cec1537d5cb08a5a1a2";
-
             string url = $"https://api.openweathermap.org/data/2.5/weather?" +
                          $"q={cidade}&units=metric&appid={chave}";
 
-            using (HttpClient client = new HttpClient())
+            try
             {
-                HttpResponseMessage resp = await client.GetAsync(url);
-
-                if (resp.IsSuccessStatusCode)
+                using (HttpClient client = new HttpClient())
                 {
+                    HttpResponseMessage resp = await client.GetAsync(url);
+
+                    // Tratamento para cidade não encontrada
+                    if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        await Shell.Current.DisplayAlert("Cidade não encontrada",
+                            "Verifique o nome da cidade e tente novamente.", "OK");
+                        return null;
+                    }
+
+                    // Tratamento para outros erros HTTP
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        await Shell.Current.DisplayAlert("Erro na requisição",
+                            $"O servidor retornou um erro: {resp.StatusCode}", "OK");
+                        return null;
+                    }
+
                     string json = await resp.Content.ReadAsStringAsync();
 
                     var rascunho = JObject.Parse(json);
@@ -40,9 +63,15 @@ namespace MauiAppTempoAgora.Services
                         visibility = (int)rascunho["visibility"],
                         sunrise = sunrise.ToString(),
                         sunset = sunset.ToString(),
-                    }; // Fecha obj do Tempo.
-                } // Fecha if se o status do servidor foi de sucesso
-            } // fecha laço using
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                await Shell.Current.DisplayAlert("Erro inesperado",
+                    $"Ocorreu um erro: {ex.Message}", "OK");
+                return null;
+            }
 
             return t;
         }
