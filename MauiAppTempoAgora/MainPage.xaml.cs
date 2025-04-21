@@ -1,5 +1,6 @@
 ﻿using MauiAppTempoAgora.Models;
 using MauiAppTempoAgora.Services;
+using System.Net;
 
 namespace MauiAppTempoAgora
 {
@@ -16,6 +17,13 @@ namespace MauiAppTempoAgora
         {
             try
             {
+                // Verifica se há conexão com a internet
+                if (!await VerificarConexaoInternet())
+                {
+                    await DisplayAlert("Sem conexão", "Você está sem conexão com a internet. Conecte-se para verificar o tempo.", "OK");
+                    return;
+                }
+
                 if (!string.IsNullOrEmpty(txt_cidade.Text))
                 {
                     Tempo? t = await DataService.GetPrevisao(txt_cidade.Text);
@@ -28,6 +36,9 @@ namespace MauiAppTempoAgora
                                          $"Longitude: {t.lon} \n" +
                                          $"Nascer do Sol: {t.sunrise} \n" +
                                          $"Por do Sol: {t.sunset} \n" +
+                                         $"Decrição: {t.description} \n" +
+                                         $"Velocidade do Vento: {t.speed} \n" +
+                                         $"Visibilidade: {t.visibility} \n" +
                                          $"Temp Máx: {t.temp_max} \n" +
                                          $"Temp Min: {t.temp_min} \n";
 
@@ -36,24 +47,44 @@ namespace MauiAppTempoAgora
                     }
                     else
                     {
-
-                        lbl_res.Text = "Sem dados de Previsão";
+                        await DisplayAlert("Erro", "Sem dados de previsão para esta cidade.", "OK");
                     }
-
                 }
                 else
                 {
-                    lbl_res.Text = "Preencha a cidade.";
+                    await DisplayAlert("Atenção", "Por favor, preencha o nome da cidade.", "OK");
                 }
-
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                await DisplayAlert("Cidade não encontrada", "Não foi possível encontrar a cidade especificada. Verifique o nome e tente novamente.", "OK");
+            }
+            catch (HttpRequestException ex)
+            {
+                await DisplayAlert("Erro na requisição", $"Ocorreu um erro ao buscar os dados: {ex.Message}", "OK");
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ops", ex.Message, "OK");
+                await DisplayAlert("Erro inesperado", $"Ocorreu um erro: {ex.Message}", "OK");
+            }
+        }
+
+        private async Task<bool> VerificarConexaoInternet()
+        {
+            try
+            {
+                using (var ping = new System.Net.NetworkInformation.Ping())
+                {
+                    var resposta = await ping.SendPingAsync("8.8.8.8", 3000);
+                    return resposta.Status == System.Net.NetworkInformation.IPStatus.Success;
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
     }
-
 }
 
 
