@@ -16,8 +16,6 @@ namespace MauiAppTempoAgora
         {
             try
             {
-           
-
                 if (!string.IsNullOrEmpty(txt_cidade.Text))
                 {
                     Tempo? t = await DataService.GetPrevisao(txt_cidade.Text);
@@ -31,10 +29,7 @@ namespace MauiAppTempoAgora
                                          $"Nascer do Sol: {t.sunrise} \n" +
                                          $"Por do Sol: {t.sunset} \n" +
                                          $"Temp Máx: {t.temp_max} \n" +
-                                         $"Temp Min: {t.temp_min} \n" +
-                                         $"visibility: {t.visibility} \n" +
-                                         $"speed: {t.speed} \n" +
-                                         $"Description: {t.description} \n";
+                                         $"Temp Min: {t.temp_min} \n";
 
                         lbl_res.Text = dados_previsao;
 
@@ -60,3 +55,6 @@ namespace MauiAppTempoAgora
     }
 
 }
+
+
+
